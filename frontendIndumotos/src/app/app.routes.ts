@@ -1,0 +1,84 @@
+import { Routes } from '@angular/router';
+import { authGuard } from './core/auth.guard';
+import { permissionGuard } from './core/permission.guard';
+
+export const routes: Routes = [
+  { path: 'login', loadComponent: () => import('./pages/login.page').then((m) => m.LoginPage) },
+  {
+    path: 'app',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/shell.page').then((m) => m.ShellPage),
+    children: [
+      { path: '', loadComponent: () => import('./pages/home.page').then((m) => m.HomePage) },
+      {
+        path: 'llegadas',
+        loadComponent: () => import('./pages/llegadas.page').then((m) => m.LlegadasPage),
+      },
+      {
+        path: 'fichas',
+        loadComponent: () => import('./pages/fichas.page').then((m) => m.FichasPage),
+      },
+      {
+        path: 'inventario',
+        canActivate: [permissionGuard],
+        data: { permission: 'INVENTARIO_CONSULTAR' },
+        loadComponent: () => import('./pages/inventario.page').then((m) => m.InventarioPage),
+      },
+      {
+        path: 'ubicaciones',
+        canActivate: [permissionGuard],
+        data: { permission: 'INVENTARIO_CONSULTAR', kind: 'ubicaciones' },
+        loadComponent: () => import('./pages/logistica.page').then((m) => m.LogisticaPage),
+      },
+      {
+        path: 'movimientos',
+        canActivate: [permissionGuard],
+        data: { permission: 'INVENTARIO_CONSULTAR', kind: 'movimientos' },
+        loadComponent: () => import('./pages/logistica.page').then((m) => m.LogisticaPage),
+      },
+      {
+        path: 'solicitudes',
+        canActivate: [permissionGuard],
+        data: { permission: 'INVENTARIO_CONSULTAR', kind: 'solicitudes' },
+        loadComponent: () => import('./pages/logistica.page').then((m) => m.LogisticaPage),
+      },
+      {
+        path: 'disponibilidad',
+        canActivate: [permissionGuard],
+        data: { permission: 'INVENTARIO_CONSULTAR', kind: 'inventario' },
+        loadComponent: () => import('./pages/logistica.page').then((m) => m.LogisticaPage),
+      },
+      {
+        path: 'inconsistencias',
+        canActivate: [permissionGuard],
+        data: { permission: 'INVENTARIO_CONSULTAR', kind: 'inconsistencias' },
+        loadComponent: () => import('./pages/logistica.page').then((m) => m.LogisticaPage),
+      },
+      {
+        path: 'recepciones',
+        canActivate: [permissionGuard],
+        data: { permission: 'INVENTARIO_CONSULTAR', kind: 'llegadas' },
+        loadComponent: () => import('./pages/logistica.page').then((m) => m.LogisticaPage),
+      },
+      {
+        path: 'directorio',
+        canActivate: [permissionGuard],
+        data: { permission: 'PERMISOS_ASIGNAR', kind: 'usuarios' },
+        loadComponent: () => import('./pages/logistica.page').then((m) => m.LogisticaPage),
+      },
+      {
+        path: 'usuarios',
+        canActivate: [permissionGuard],
+        data: { permission: 'USUARIOS_CREAR' },
+        loadComponent: () => import('./pages/usuarios.page').then((m) => m.UsuariosPage),
+      },
+      {
+        path: 'permisos',
+        canActivate: [permissionGuard],
+        loadComponent: () => import('./pages/permisos.page').then((m) => m.PermisosPage),
+      },
+    ],
+  },
+  { path: '', pathMatch: 'full', redirectTo: 'app' },
+  { path: '**', redirectTo: 'app' },
+];

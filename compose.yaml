@@ -1,0 +1,9 @@
+name: indumotos-web-dam
+services:
+  web:
+    build: .
+    ports: ["8085:80"]
+    environment:
+      API_UPSTREAM: ${API_UPSTREAM:-http://host.docker.internal:8088}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

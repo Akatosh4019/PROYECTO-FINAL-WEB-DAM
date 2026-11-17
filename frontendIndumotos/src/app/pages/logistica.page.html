@@ -1,0 +1,194 @@
+<div class="form-page logistics">
+  <div class="eyebrow">OPERACIONES / INDUMOTOS</div>
+  <div class="heading">
+    <div>
+      <h1>{{ config.title }}</h1>
+      <p class="lead">{{ config.description }}</p>
+    </div>
+    @if (config.create; as create) {
+      @if (auth.can(create.permission)) {
+        <button (click)="open(create)">+ {{ create.label }}</button>
+      }
+    }
+  </div>
+  <div class="toolbar">
+    <input
+      aria-label="Buscar registros"
+      placeholder="Buscar en los registros cargados…"
+      [ngModel]="search()"
+      (ngModelChange)="filter($event)"
+    /><button class="tertiary" (click)="reload()" [disabled]="loading()">
+      {{ loading() ? 'Cargando…' : 'Actualizar' }}
+    </button>
+  </div>
+  @if (error()) {
+    <p class="message error" role="alert">{{ error() }}</p>
+  }
+  @if (success()) {
+    <p class="message success" role="status">{{ success() }}</p>
+  }
+  @if (action(); as a) {
+    <section class="panel editor">
+      <div class="heading">
+        <h2>
+          {{ a.label }}
+          @if (selected(); as row) {
+            · #{{ id(row) }}
+          }
+        </h2>
+        <button class="tertiary" [disabled]="saving()" (click)="action.set(null)">Cancelar</button>
+      </div>
+      <form (ngSubmit)="save()" #f="ngForm">
+        <div class="fields">
+          @for (field of a.fields; track field.key) {
+            <div>
+              <label [for]="field.key">{{ field.label }}</label>
+              @if (field.source) {
+                <select
+                  [id]="field.key"
+                  [name]="field.key"
+                  required
+                  [(ngModel)]="values[field.key]"
+                >
+                  <option value="" disabled>Selecciona una opción</option>
+                  @for (row of lookup(field); track row['id_ubicacion'] || row['id_motocicleta']) {
+                    <option [ngValue]="optionId(field, row)">{{ optionLabel(field, row) }}</option>
+                  }
+                </select>
+              } @else if (field.options) {
+                <select
+                  [id]="field.key"
+                  [name]="field.key"
+                  required
+                  [(ngModel)]="values[field.key]"
+                >
+                  @for (option of choices(field); track option) {
+                    <option [value]="option">{{ option }}</option>
+                  }
+                </select>
+              } @else if (field.type === 'textarea') {
+                <textarea
+                  [id]="field.key"
+                  [name]="field.key"
+                  required
+                  maxlength="1000"
+                  [(ngModel)]="values[field.key]"
+                ></textarea>
+              } @else {
+                <input
+                  [id]="field.key"
+                  [name]="field.key"
+                  [type]="field.type || 'text'"
+                  required
+                  [attr.min]="field.type === 'number' ? 1 : null"
+                  [attr.maxlength]="field.key === 'codigo' ? 50 : 120"
+                  [(ngModel)]="values[field.key]"
+                />
+              }
+            </div>
+          }
+        </div>
+        <button [disabled]="saving() || !f.valid">
+          {{ saving() ? 'Guardando…' : 'Guardar operación' }}
+        </button>
+      </form>
+    </section>
+  }
+  <section class="panel table-panel" [attr.aria-busy]="loading()">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            @for (col of config.columns; track col.key) {
+              <th>{{ col.label }}</th>
+            }
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of visible(); track id(row)) {
+            <tr>
+              <td class="record-id">#{{ id(row) }}</td>
+              @for (col of config.columns; track col.key) {
+                <td>
+                  @if (col.key === 'estado' || col.key === 'disponibilidad') {
+                    <span class="badge">{{ display(row[col.key]) }}</span>
+                  } @else {
+                    {{ display(row[col.key]) }}
+                  }
+                </td>
+              }
+              <td>
+                <div class="row-actions">
+                  @for (a of config.actions || []; track a.label) {
+                    @if (available(a, row)) {
+                      <button class="tertiary" (click)="open(a, row)">{{ a.label }}</button>
+                    }
+                  }
+                  @if (config.history && auth.can('INVENTARIO_CONSULTAR')) {
+                    <button class="tertiary" (click)="showHistory(row)">Historial</button>
+                  }
+                  @if (kind === 'llegadas') {
+                    <a [routerLink]="['/app/fichas']" [queryParams]="{ llegadaId: id(row) }"
+                      >Ver / registrar fichas</a
+                    >
+                  }
+                  @if (kind === 'usuarios' && auth.can('PERMISOS_ASIGNAR')) {
+                    <a routerLink="/app/permisos">Administrar permisos</a>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td [attr.colspan]="config.columns.length + 2" class="empty-row">
+                {{ loading() ? 'Cargando registros…' : 'No hay registros que mostrar.' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span
+        >{{ filtered().length }} registros cargados · Página {{ page() + 1 }} de {{ pages() }}</span
+      >
+      <div>
+        <button class="tertiary" [disabled]="page() === 0" (click)="page.set(page() - 1)">
+          Anterior</button
+        ><button class="tertiary" [disabled]="page() + 1 >= pages()" (click)="page.set(page() + 1)">
+          Siguiente
+        </button>
+      </div>
+    </div>
+  </section>
+  <p class="hint">
+    La consulta muestra hasta los últimos 500 registros; el filtro y las páginas operan sobre ese
+    conjunto.
+  </p>
+  @if (historyLoading()) {
+    <p role="status">Cargando historial…</p>
+  }
+  @if (history(); as events) {
+    <section class="panel">
+      <div class="heading">
+        <h2>Historial · #{{ historyId() }}</h2>
+        <button class="tertiary" (click)="history.set(null)">Cerrar</button>
+      </div>
+      @for (event of events; track event['id_evento']) {
+        <div class="event">
+          <span class="badge">{{ event['estado'] }}</span>
+          <p>{{ event['nota'] || event['motivo'] }}</p>
+          <small
+            >{{ event['registrado_en'] || event['creado_en'] }} · Usuario #{{
+              event['id_registrador']
+            }}</small
+          >
+        </div>
+      } @empty {
+        <p>No hay eventos registrados.</p>
+      }
+    </section>
+  }
+</div>
